@@ -5,21 +5,108 @@ output:
     keep_md: true
 ---
 
-
 ## Loading and preprocessing the data
+```{r}
+unzip("activity.zip")
+data <- read.csv("activity.csv")
+
+# Understand the data
+str(data)
+summary(data)
+
+# Convert date field to date format for better analysis
+data$date <- as.POSIXct(data$date)
+```
+
+## Histogram of the total number of steps taken each day
+```{r}
+# Calculate the total number of steps taken per day
+steps_number <- tapply(data$steps, data$date, sum)
+
+# Plot histogram
+hist(steps_number, xlab = "number of steps", main = "the total number of steps taken each day")
+```
 
 
+## What is mean and median total number of steps taken per day?
+```{r}
+meanDay <- mean(tapply(data$steps, data$date, sum), na.rm = T)
+print(meanDay)
 
-## What is mean total number of steps taken per day?
-
+medianDay <- median(tapply(data$steps, data$date, sum), na.rm = T)
+print(medianDay)
+```
 
 
 ## What is the average daily activity pattern?
 
+```{r}
+mean_interval <- tapply(data$steps, data$interval, mean, na.rm = T)
+
+# Time series plot of the average number of steps taken
+plot(mean_interval, type = "l", main = "time series plot", xlab = "the 5-minute interval", ylab = "the average number of steps")
+
+# 5. The 5-minute interval that, on average, contains the maximum number of steps
+which.max(mean_interval)
+
+```
 
 
 ## Imputing missing values
+```{r}
+# Calculate total number of missing values in dataset 
+stepsNA <- sum(is.na(data$steps))
+stepsNA
 
+dateNA <- sum(is.na(data$date))
+dateNA
+
+intervalNA <- sum(is.na(data$interval))
+intervalNA
+
+table(is.na(data$steps), data$interval)
+
+barplot(is.na(data$steps))
+
+# Create a new dataset with filled in missing values with mean of that interval
+dataFix <- data
+for (i in unique(dataFix$interval)) {
+        dataFix$steps[is.na(dataFix$steps) & dataFix$interval == i] <- round(mean(dataFix$steps[data$interval == i], na.rm = T))
+}
+
+# Verify if there is any missing value
+any(is.na(dataFix))
+
+# 7. Histogram of the total number of steps taken each day after missing values are imputed
+steps_numberFix <- tapply(dataFix$steps, dataFix$date, sum)
+
+hist(steps_numberFix, xlab = "number of steps", main = "the total number of steps taken each day Fix")
+
+
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+# Calculate new variable with "weekday" and "weekend" information 
+dataFix$weekD <- as.POSIXlt(data$date)$wday == 0 | as.POSIXlt(data$date)$wday == 6
+
+dataFix$weekD <- factor(dataFix$weekD, levels = c(F, T), labels = c("weekday", "weekend"))
+table(dataFix$weekD) 
+
+# Avg steps taken during weekday with 5 min interval
+stepsWeekD <- tapply(dataFix$steps[dataFix$weekD == "weekday"], dataFix$interval[dataFix$weekD == "weekday"], mean)
+
+# Avg steps taken during weekend with 5 min interval
+stepsWeekE <- tapply(dataFix$steps[dataFix$weekD == "weekend"], dataFix$interval[dataFix$weekD == "weekend"], mean)
+
+par(mfrow = c(2,1))
+plot(stepsWeekD, type = "l", main = "Weekdays"
+     ,xlab = "The 5-minute interval"
+     ,ylab = "The average number of steps")
+
+plot(stepsWeekE, type = "l", main = "Weekends"
+     ,xlab = "The 5-minute interval"
+     ,ylab = "The average number of steps")
+
+```
